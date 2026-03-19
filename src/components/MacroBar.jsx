@@ -1,7 +1,7 @@
-import React from "react";
+import React, { memo } from "react";
 import { Activity, RefreshCw } from "lucide-react";
 
-export default function MacroBar({
+const MacroBar = memo(function MacroBar({
   exchangeRates,
   isFetchingRates,
   fetchGlobalRates,
@@ -81,7 +81,7 @@ export default function MacroBar({
         <div className="min-w-[160px] bg-[#161b22] rounded-xl px-4 py-2 border border-slate-800 flex items-center focus-within:border-amber-500/50 transition-colors">
           <div className="w-full">
             <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest">
-              Fear & Greed Index
+              Fear &amp; Greed Index
             </p>
             <div className="flex items-center gap-2 mt-0.5">
               <input
@@ -116,4 +116,6 @@ export default function MacroBar({
       </div>
     </div>
   );
-}
+});
+
+export default MacroBar;
