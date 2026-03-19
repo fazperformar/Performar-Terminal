@@ -17,6 +17,7 @@ import {
   ComposedChart,
   Area,
   Line,
+  ReferenceLine,
   BarChart,
   Bar,
   PieChart,
@@ -94,6 +95,34 @@ function useStickyState(defaultValue, key) {
 
   return [value, setValue];
 }
+// ==========================================
+// 🔧 UTILITÁRIOS GLOBAIS (FORA DO COMPONENTE)
+// ==========================================
+
+// Gerador de ID único seguro (evita colisões em iterações rápidas)
+const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+// Formatadores criados uma única vez (Intl.NumberFormat é pesado)
+const USD_FORMATTER = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+const BRL_FORMATTER = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  maximumFractionDigits: 0,
+});
+const formatUSD = (v) => USD_FORMATTER.format(v || 0);
+const formatBRL = (v) => BRL_FORMATTER.format(v || 0);
+
+// Escudo universal contra NaN/Infinity/null em qualquer cálculo numérico
+const safe = (v, fallback = 0) =>
+  v === null || v === undefined || isNaN(v) || !isFinite(v) ? fallback : v;
+
+// Correlação média estimada entre ativos (simplificação de Markowitz)
+const ASSET_CORRELATION_ESTIMATE = 0.3;
+
 // ==========================================
 // 📈 DADOS BASE E CONFIGURAÇÕES DO ALGORITMO
 // ==========================================
@@ -320,34 +349,35 @@ const calculatePortfolioMetrics = (allocations, totalAllocation, inflation) => {
   Object.entries(allocations).forEach(([key, weight]) => {
     if (masterAssets[key]) {
       const asset = masterAssets[key];
-      const normWeight = weight / totalAllocation;
-      nom += normWeight * asset.return;
-      dy += normWeight * asset.yield;
-      beta += normWeight * asset.beta;
-      drawdown += normWeight * asset.drawdown;
-      weightedVariance += Math.pow(normWeight * asset.vol, 2);
+      const normWeight = safe(weight) / safe(totalAllocation, 1);
+      nom += normWeight * safe(asset.return);
+      dy += normWeight * safe(asset.yield);
+      beta += normWeight * safe(asset.beta);
+      drawdown += normWeight * safe(asset.drawdown);
+      weightedVariance += Math.pow(normWeight * safe(asset.vol), 2);
       Object.entries(allocations).forEach(([key2, weight2]) => {
         if (key !== key2 && masterAssets[key2]) {
           crossTermVariance +=
             normWeight *
-            (weight2 / totalAllocation) *
-            asset.vol *
-            masterAssets[key2].vol *
-            0.3; // Correlação fixa simplificada
+            (safe(weight2) / safe(totalAllocation, 1)) *
+            safe(asset.vol) *
+            safe(masterAssets[key2].vol) *
+            ASSET_CORRELATION_ESTIMATE;
         }
       });
     }
   });
-  const vol = Math.sqrt(weightedVariance + crossTermVariance);
-  const real = ((1 + nom / 100) / (1 + inflation / 100) - 1) * 100;
+  const vol = safe(Math.sqrt(weightedVariance + crossTermVariance));
+  const safeInflation = safe(inflation, 0);
+  const real = ((1 + nom / 100) / (1 + safeInflation / 100) - 1) * 100;
   return {
-    nom,
-    real,
-    vol,
-    dy,
-    beta,
-    drawdown,
-    sharpe: vol > 0 ? (nom - 4.5) / vol : 0,
+    nom: safe(nom),
+    real: safe(real),
+    vol: safe(vol),
+    dy: safe(dy),
+    beta: safe(beta),
+    drawdown: safe(drawdown),
+    sharpe: vol > 0 ? safe((nom - 4.5) / vol) : 0,
   };
 };
 
@@ -358,25 +388,31 @@ const calcExactTimeToTarget = (
   monthlyContribution,
   targetYears
 ) => {
-  const targetMonths = targetYears * 12;
-  const monthlyRealRate = Math.pow(1 + realRate / 100, 1 / 12) - 1;
+  const safeInitial = safe(initialCapital);
+  const safeTarget = safe(target, 1);
+  const safeRealRate = safe(realRate);
+  const safePmt = safe(monthlyContribution);
+  const safeYears = safe(targetYears, 1);
+
+  const targetMonths = safeYears * 12;
+  const monthlyRealRate = Math.pow(1 + safeRealRate / 100, 1 / 12) - 1;
   let requiredPmt = 0;
 
   if (targetMonths > 0) {
     if (monthlyRealRate > 0) {
-      requiredPmt =
-        (target -
-          initialCapital * Math.pow(1 + monthlyRealRate, targetMonths)) /
-        ((Math.pow(1 + monthlyRealRate, targetMonths) - 1) / monthlyRealRate);
+      requiredPmt = safe(
+        (safeTarget - safeInitial * Math.pow(1 + monthlyRealRate, targetMonths)) /
+        ((Math.pow(1 + monthlyRealRate, targetMonths) - 1) / monthlyRealRate)
+      );
     } else {
-      requiredPmt = (target - initialCapital) / targetMonths;
+      requiredPmt = safe((safeTarget - safeInitial) / targetMonths);
     }
   }
 
   requiredPmt = Math.max(0, requiredPmt);
-  const pmtDiff = requiredPmt - monthlyContribution;
+  const pmtDiff = requiredPmt - safePmt;
 
-  if (initialCapital >= target)
+  if (safeInitial >= safeTarget)
     return {
       reached: true,
       years: 0,
@@ -386,7 +422,7 @@ const calcExactTimeToTarget = (
       requiredPmt: 0,
       pmtDiff: 0,
     };
-  if (initialCapital <= 0 && monthlyContribution <= 0)
+  if (safeInitial <= 0 && safePmt <= 0)
     return {
       impossible: true,
       isLate: true,
@@ -394,7 +430,7 @@ const calcExactTimeToTarget = (
       requiredPmt,
       pmtDiff,
     };
-  if (monthlyRealRate <= 0 && monthlyContribution <= 0)
+  if (monthlyRealRate <= 0 && safePmt <= 0)
     return {
       impossible: true,
       isLate: true,
@@ -404,15 +440,15 @@ const calcExactTimeToTarget = (
     };
 
   let months = 0,
-    tempBal = initialCapital;
-  while (tempBal < target && months < 1200) {
+    tempBal = safeInitial;
+  while (tempBal < safeTarget && months < 1200) {
     months++;
-    tempBal = tempBal * (1 + monthlyRealRate) + monthlyContribution;
+    tempBal = tempBal * (1 + monthlyRealRate) + safePmt;
   }
 
   const isLate = months > targetMonths;
   let reason = isLate
-    ? `Sua meta de ${targetYears} anos vai atrasar. Serão necessários +${Math.floor(
+    ? `Sua meta de ${safeYears} anos vai atrasar. Serão necessários +${Math.floor(
         (months - targetMonths) / 12
       )} anos e ${(months - targetMonths) % 12} meses extras neste ritmo.`
     : "";
@@ -439,32 +475,34 @@ const generateMasterProjection = (
   metrics,
   safeWithdrawalRate
 ) => {
-  const safeNom = isNaN(metrics.nom) ? 0 : metrics.nom;
-  const safeReal = isNaN(metrics.real) ? 0 : metrics.real;
-  const safeVol = isNaN(metrics.vol) ? 0 : metrics.vol;
-  const mNom = Math.pow(1 + safeNom / 100, 1 / 12) - 1;
-  const mReal = Math.pow(1 + safeReal / 100, 1 / 12) - 1;
+  const safeNom = safe(metrics.nom);
+  const safeReal = safe(metrics.real);
+  const safeVol = safe(metrics.vol);
+  const safeInitCap = safe(initialCapital);
+  const safeMonthly = safe(monthlyContribution);
+  const mNom = safe(Math.pow(1 + safeNom / 100, 1 / 12) - 1);
+  const mReal = safe(Math.pow(1 + safeReal / 100, 1 / 12) - 1);
   const data = [];
-  let nBal = initialCapital,
-    rBal = initialCapital;
+  let nBal = safeInitCap,
+    rBal = safeInitCap;
 
   for (let m = 0; m <= 600; m++) {
     if (m > 0) {
-      nBal = nBal * (1 + mNom) + monthlyContribution;
-      rBal = rBal * (1 + mReal) + monthlyContribution;
+      nBal = safe(nBal * (1 + mNom) + safeMonthly);
+      rBal = safe(rBal * (1 + mReal) + safeMonthly);
     }
     if (m % 12 === 0 || m === 600) {
       const year = m / 12;
-      const disp = (safeVol / 100) * Math.sqrt(year || 0.001);
+      const disp = safe((safeVol / 100) * Math.sqrt(year || 0.001));
       data.push({
         month: m,
         year,
-        nMedian: Math.round(nBal),
-        rMedian: Math.round(rBal),
-        nBull: Math.round(nBal * Math.exp(1.28 * disp)),
-        nBear: Math.round(nBal * Math.exp(-1.28 * disp)),
-        rBull: Math.round(rBal * Math.exp(1.28 * disp)),
-        rBear: Math.round(rBal * Math.exp(-1.28 * disp)),
+        nMedian: Math.round(safe(nBal)),
+        rMedian: Math.round(safe(rBal)),
+        nBull: Math.round(safe(nBal * Math.exp(1.28 * disp))),
+        nBear: Math.round(safe(nBal * Math.exp(-1.28 * disp))),
+        rBull: Math.round(safe(rBal * Math.exp(1.28 * disp))),
+        rBear: Math.round(safe(rBal * Math.exp(-1.28 * disp))),
       });
     }
   }
@@ -476,6 +514,8 @@ const generateMasterProjection = (
 // ==========================================
 export default function App() {
   const [isStorageBlocked, setIsStorageBlocked] = useState(false);
+  const [isDark, setIsDark] = useStickyState(true, "fp_dark_mode");
+  const toggleTheme = useCallback(() => setIsDark((d) => !d), []);
   const fileInputRef = useRef(null);
 
   // Sistema de Toast UI (Sem alerts)
@@ -491,6 +531,11 @@ export default function App() {
       4000
     );
   }, []);
+
+  // Aplica o tema (dark/light) no documento inteiro
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+  }, [isDark]);
 
   useEffect(() => {
     try {
@@ -630,21 +675,8 @@ export default function App() {
     setCurrentMonth(`${y}-${String(m).padStart(2, "0")}`);
   };
 
-  const formatUSD = (v) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(v || 0);
-  const formatBRL = (v) =>
-    new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      maximumFractionDigits: 0,
-    }).format(v || 0);
-
-  // Busca API Câmbio Blindada
-  const fetchGlobalRates = async () => {
+  // Busca API Câmbio Blindada (useCallback evita recriação desnecessária)
+  const fetchGlobalRates = useCallback(async () => {
     setIsFetchingRates(true);
     try {
       const res = await fetch(
@@ -665,10 +697,10 @@ export default function App() {
     } finally {
       setIsFetchingRates(false);
     }
-  };
+  }, [showToast]);
   useEffect(() => {
     fetchGlobalRates();
-  }, []);
+  }, [fetchGlobalRates]);
 
   // Cálculos Base Memorizados (Performance Extrema)
   const totalAllocation = useMemo(
@@ -729,21 +761,27 @@ export default function App() {
     ? displayData[displayData.length - 1].rMedian
     : 0;
 
-  // Lógica Cashflow Otimizada
-  const totalIncome = incomes.reduce(
-    (sum, item) => sum + (Number(item.amount) || 0),
-    0
+  // Lógica Cashflow Otimizada (useMemo evita recálculo em cada re-render)
+  const totalIncome = useMemo(
+    () => incomes.reduce((sum, item) => sum + (Number(item.amount) || 0), 0),
+    [incomes]
   );
-  const totalExpense = expenses.reduce(
-    (sum, item) => sum + (Number(item.amount) || 0),
-    0
+  const totalExpense = useMemo(
+    () => expenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0),
+    [expenses]
   );
-  const totalDebt = debts.reduce(
-    (sum, item) => sum + (Number(item.amount) || 0),
-    0
+  const totalDebt = useMemo(
+    () => debts.reduce((sum, item) => sum + (Number(item.amount) || 0), 0),
+    [debts]
   );
-  const netCashflow = totalIncome - (totalExpense + totalDebt);
-  const savingsRate = totalIncome > 0 ? (netCashflow / totalIncome) * 100 : 0;
+  const netCashflow = useMemo(
+    () => totalIncome - (totalExpense + totalDebt),
+    [totalIncome, totalExpense, totalDebt]
+  );
+  const savingsRate = useMemo(
+    () => (totalIncome > 0 ? (netCashflow / totalIncome) * 100 : 0),
+    [totalIncome, netCashflow]
+  );
 
   const handleNormalize = () => {
     if (totalAllocation === 0 || totalAllocation === 100) return;
@@ -778,13 +816,13 @@ export default function App() {
     const lastMonth = sorted[sorted.length - 1];
 
     setIncomes(
-      lastMonth.incomes.map((i) => ({ ...i, id: Date.now() + Math.random() }))
+      lastMonth.incomes.map((i) => ({ ...i, id: genId() }))
     );
     setExpenses(
-      lastMonth.expenses.map((i) => ({ ...i, id: Date.now() + Math.random() }))
+      lastMonth.expenses.map((i) => ({ ...i, id: genId() }))
     );
     setDebts(
-      lastMonth.debts.map((i) => ({ ...i, id: Date.now() + Math.random() }))
+      lastMonth.debts.map((i) => ({ ...i, id: genId() }))
     );
 
     showToast(`Copiado com sucesso de ${lastMonth.monthName}!`);
@@ -947,7 +985,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0d1117] p-2 sm:p-4 md:p-6 font-sans text-slate-200 text-left overflow-x-hidden flex flex-col selection:bg-blue-500/30">
-      <style>{` input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; } .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #30363d; border-radius: 10px; border: 2px solid #0d1117; } .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #484f58; } select option { background: #161b22; color: #fff; padding: 10px; }`}</style>
 
       {/* TOAST NOTIFICATION SYSTEM */}
       {toast.show && (
@@ -988,6 +1025,8 @@ export default function App() {
           handleImportBackup={handleImportBackup}
           isGuidedMode={isGuidedMode}
           setIsGuidedMode={setIsGuidedMode}
+          isDark={isDark}
+          toggleTheme={toggleTheme}
         />
 
         {/* NAVEGAÇÃO ABAS MASTER */}
@@ -1170,10 +1209,12 @@ export default function App() {
                           <input
                             type="number"
                             step="0.1"
-                            value={inflation || ""}
-                            onChange={(e) =>
-                              setInflation(Number(e.target.value))
-                            }
+                            defaultValue={inflation || ""}
+                            key={inflation}
+                            onBlur={(e) => {
+                              const v = Number(e.target.value);
+                              if (!isNaN(v) && v !== inflation) setInflation(v);
+                            }}
                             className="w-full bg-[#0d1117] border border-slate-700 p-3 rounded-xl text-white font-mono text-xl font-black outline-none text-center shadow-inner focus-within:border-red-500/50"
                           />
                         </div>
@@ -1387,81 +1428,59 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="w-full h-[400px] bg-[#0d1117]/50 rounded-2xl p-4 border border-slate-800/50">
+                {/* GRÁFICO */}
+                <div className="w-full h-[380px] bg-[#0d1117]/60 rounded-2xl px-2 pt-4 pb-2 border border-slate-800/50">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart
                       data={displayData}
-                      margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                      margin={{ top: 8, right: 16, left: 0, bottom: 4 }}
                     >
                       <defs>
-                        <linearGradient
-                          id="mainGrad"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor={isRealView ? "#10b981" : "#f59e0b"}
-                            stopOpacity={0.3}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor={isRealView ? "#10b981" : "#f59e0b"}
-                            stopOpacity={0}
-                          />
+                        <linearGradient id="mainGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={isRealView ? "#10b981" : "#f59e0b"} stopOpacity={0.35} />
+                          <stop offset="95%" stopColor={isRealView ? "#10b981" : "#f59e0b"} stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="bearGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#ef4444" stopOpacity={0.08} />
+                          <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="#30363d"
-                        opacity={0.5}
-                      />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#21262d" opacity={0.8} />
                       <XAxis
                         dataKey="year"
                         axisLine={false}
                         tickLine={false}
-                        tick={{
-                          fill: "#64748b",
-                          fontSize: 11,
-                          fontWeight: "bold",
-                        }}
+                        tick={{ fill: "#64748b", fontSize: 11, fontWeight: "bold" }}
                         dy={10}
+                        tickFormatter={(v) => `${v}a`}
                       />
                       <YAxis
                         axisLine={false}
                         tickLine={false}
-                        tick={{
-                          fill: "#64748b",
-                          fontSize: 11,
-                          fontWeight: "bold",
-                        }}
-                        tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                        dx={-10}
+                        tick={{ fill: "#64748b", fontSize: 11, fontWeight: "bold" }}
+                        tickFormatter={(v) => v >= 1000000 ? `$${(v/1000000).toFixed(1)}M` : `$${(v/1000).toFixed(0)}k`}
+                        dx={-4}
+                        width={64}
                       />
                       <RechartsTooltip
                         contentStyle={{
                           backgroundColor: "#161b22",
                           border: "1px solid #30363d",
                           borderRadius: "12px",
-                          boxShadow: "0 10px 15px -3px rgba(0,0,0,0.5)",
+                          boxShadow: "0 20px 25px -5px rgba(0,0,0,0.7)",
                           color: "#fff",
+                          padding: "12px 16px",
                         }}
-                        itemStyle={{ color: "#fff", fontWeight: "bold" }}
-                        formatter={(value) => formatUSD(value)}
-                        labelStyle={{
-                          color: "#94a3b8",
-                          fontWeight: "bold",
-                          paddingBottom: "4px",
-                        }}
+                        itemStyle={{ color: "#fff", fontWeight: "bold", fontSize: "12px" }}
+                        formatter={(value, name) => [formatUSD(value), name]}
+                        labelFormatter={(label) => `Ano ${label}`}
+                        labelStyle={{ color: "#64748b", fontWeight: "black", fontSize: "11px", paddingBottom: "6px", textTransform: "uppercase", letterSpacing: "0.1em" }}
                       />
                       <Area
                         type="monotone"
                         dataKey={isRealView ? "rMedian" : "nMedian"}
                         stroke={isRealView ? "#10b981" : "#f59e0b"}
-                        strokeWidth={4}
+                        strokeWidth={3}
                         fill="url(#mainGrad)"
                         name="Média Esperada"
                       />
@@ -1469,38 +1488,103 @@ export default function App() {
                         type="monotone"
                         dataKey={isRealView ? "rBear" : "nBear"}
                         stroke="#ef4444"
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
+                        strokeWidth={1.5}
+                        strokeDasharray="4 4"
                         dot={false}
-                        name="Cenário Pessimista"
+                        name="Pessimista"
+                        opacity={0.7}
                       />
                       <Line
                         type="monotone"
                         dataKey={isRealView ? "rBull" : "nBull"}
-                        stroke="#10b981"
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
+                        stroke="#34d399"
+                        strokeWidth={1.5}
+                        strokeDasharray="4 4"
                         dot={false}
-                        name="Cenário Otimista"
+                        name="Otimista"
+                        opacity={0.7}
+                      />
+                      {/* 🎯 LINHA DE REFERÊNCIA — NÚMERO MÁGICO FIRE */}
+                      <ReferenceLine
+                        y={fireTargetValue}
+                        stroke="#818cf8"
+                        strokeWidth={2}
+                        strokeDasharray="8 4"
+                        label={(props) => {
+                          const { viewBox } = props;
+                          const x = viewBox.x + viewBox.width - 8;
+                          const y = viewBox.y;
+                          return (
+                            <g>
+                              <rect
+                                x={x - 110}
+                                y={y - 22}
+                                width={118}
+                                height={20}
+                                rx={6}
+                                fill="#1e1b4b"
+                                stroke="#818cf8"
+                                strokeWidth={1}
+                                opacity={0.95}
+                              />
+                              <text
+                                x={x - 52}
+                                y={y - 8}
+                                fill="#a5b4fc"
+                                fontSize={10}
+                                fontWeight="bold"
+                                textAnchor="middle"
+                                fontFamily="monospace"
+                              >
+                                🎯 FIRE {formatUSD(fireTargetValue)}
+                              </text>
+                            </g>
+                          );
+                        }}
                       />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
 
-                <div className="mt-6 text-center">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">
-                    Resultado Projetado (Final de {years} Anos)
-                  </p>
-                  <div
-                    className={`text-4xl sm:text-5xl font-black drop-shadow-md tracking-tighter ${
-                      isRealView ? "text-emerald-400" : "text-amber-400"
-                    }`}
-                  >
-                    {formatUSD(
-                      isRealView
-                        ? projectedFinalValueReal
-                        : projectedFinalValueNominal
-                    )}
+                {/* RESULTADO PROJETADO — CARD CLEAN E DESTACADO */}
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  {/* Pessimista */}
+                  <div className="bg-[#0d1117] rounded-2xl border border-red-500/20 p-4 text-center flex flex-col items-center justify-center">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="w-2 h-2 rounded-full bg-red-500 opacity-70"></span>
+                      <p className="text-[9px] font-black text-red-400/80 uppercase tracking-[0.2em]">Pessimista</p>
+                    </div>
+                    <p className="text-lg sm:text-xl font-black text-red-300 font-mono tracking-tighter leading-none">
+                      {formatUSD(isRealView ? displayData[displayData.length - 1]?.rBear : displayData[displayData.length - 1]?.nBear)}
+                    </p>
+                  </div>
+
+                  {/* Média — destaque central */}
+                  <div className={`rounded-2xl border p-4 text-center flex flex-col items-center justify-center shadow-lg relative overflow-hidden ${isRealView ? "bg-emerald-900/20 border-emerald-500/40 shadow-emerald-500/10" : "bg-amber-900/20 border-amber-500/40 shadow-amber-500/10"}`}>
+                    <div className={`absolute inset-0 opacity-5 ${isRealView ? "bg-emerald-400" : "bg-amber-400"}`}></div>
+                    <div className="flex items-center gap-1.5 mb-1.5 relative z-10">
+                      <span className={`w-2.5 h-2.5 rounded-full ${isRealView ? "bg-emerald-400" : "bg-amber-400"}`}></span>
+                      <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${isRealView ? "text-emerald-400" : "text-amber-400"}`}>
+                        {isRealView ? "Real (Poder de Compra)" : "Nominal"}
+                      </p>
+                    </div>
+                    <p className={`text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 relative z-10`}>
+                      Projetado em {years} anos
+                    </p>
+                    <p className={`text-2xl sm:text-3xl font-black font-mono tracking-tighter leading-none relative z-10 ${isRealView ? "text-emerald-300" : "text-amber-300"}`}>
+                      {formatUSD(isRealView ? projectedFinalValueReal : projectedFinalValueNominal)}
+                    </p>
+                  </div>
+
+                  {/* Otimista */}
+                  <div className="bg-[#0d1117] rounded-2xl border border-emerald-500/20 p-4 text-center flex flex-col items-center justify-center">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 opacity-70"></span>
+                      <p className="text-[9px] font-black text-emerald-400/80 uppercase tracking-[0.2em]">Otimista</p>
+                    </div>
+                    <p className="text-lg sm:text-xl font-black text-emerald-300 font-mono tracking-tighter leading-none">
+                      {formatUSD(isRealView ? displayData[displayData.length - 1]?.rBull : displayData[displayData.length - 1]?.nBull)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1859,7 +1943,7 @@ export default function App() {
                           onClick={() =>
                             setIncomes([
                               {
-                                id: Date.now(),
+                                id: genId(),
                                 desc: "",
                                 amount: 0,
                                 category: "Salário",
@@ -1964,7 +2048,7 @@ export default function App() {
                             onClick={() =>
                               setExpenses([
                                 {
-                                  id: Date.now(),
+                                  id: genId(),
                                   desc: "",
                                   amount: 0,
                                   category: "Moradia",
@@ -2067,7 +2151,7 @@ export default function App() {
                             onClick={() =>
                               setDebts([
                                 {
-                                  id: Date.now(),
+                                  id: genId(),
                                   desc: "",
                                   amount: 0,
                                   category: "Dívidas",
