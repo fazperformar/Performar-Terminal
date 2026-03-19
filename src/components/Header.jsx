@@ -1,12 +1,14 @@
-import React from "react";
-import { Globe, Download, UploadCloud, Compass, Sliders } from "lucide-react";
+import React, { memo } from "react";
+import { Globe, Download, UploadCloud, Compass, Sliders, Sun, Moon } from "lucide-react";
 
-export default function Header({
+const Header = memo(function Header({
   handleExportBackup,
   fileInputRef,
   handleImportBackup,
   isGuidedMode,
   setIsGuidedMode,
+  isDark,
+  toggleTheme,
 }) {
   return (
     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-[#161b22] p-4 rounded-2xl border border-slate-800 shadow-xl">
@@ -51,6 +53,19 @@ export default function Header({
           />
         </div>
 
+        {/* DARK / LIGHT MODE TOGGLE */}
+        <button
+          onClick={toggleTheme}
+          title={isDark ? "Mudar para modo claro" : "Mudar para modo escuro"}
+          className={`flex items-center justify-center w-10 h-10 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+            isDark
+              ? "bg-[#0d1117] text-slate-400 border-slate-700/50 hover:border-amber-500/40 hover:text-amber-400"
+              : "bg-amber-50 text-amber-600 border-amber-200 hover:border-amber-400"
+          }`}
+        >
+          {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+        </button>
+
         <button
           onClick={() => setIsGuidedMode(!isGuidedMode)}
           className={`flex items-center px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
@@ -69,4 +84,6 @@ export default function Header({
       </div>
     </div>
   );
-}
+});
+
+export default Header;
