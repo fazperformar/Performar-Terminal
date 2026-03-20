@@ -1,7 +1,7 @@
-import React from "react";
+import React, { memo } from "react";
 import { Globe, Target, Wallet, Zap } from "lucide-react";
 
-export default function TabNavigation({ activeTab, setActiveTab }) {
+const TabNavigation = memo(function TabNavigation({ activeTab, setActiveTab }) {
   const tabs = [
     { id: "portfolio", icon: Globe, label: "1. CARTEIRA & PATRIMÔNIO" },
     { id: "fire", icon: Target, label: "2. PROJEÇÃO FIRE" },
@@ -35,4 +35,6 @@ export default function TabNavigation({ activeTab, setActiveTab }) {
       })}
     </div>
   );
-}
+});
+
+export default TabNavigation;
