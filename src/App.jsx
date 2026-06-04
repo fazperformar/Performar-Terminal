@@ -1,5 +1,7 @@
 import MacroBar from "./components/MacroBar";
 import Header from "./components/Header";
+import { useCloudState } from "./hooks/useCloudState";
+import ProjectionScenarios from "./components/ProjectionScenarios";
 import TabNavigation from "./components/TabNavigation";
 import React, {
   useState,
@@ -68,7 +70,7 @@ import {
 // ==========================================
 import useCloudState from "./hooks/useCloudState";
 
-function useStickyState(defaultValue, key) {
+function useCloudState(defaultValue, key) {
   return useCloudState(defaultValue, key);
 }
 // ==========================================
@@ -490,7 +492,7 @@ const generateMasterProjection = (
 // ==========================================
 export default function App() {
   const [isStorageBlocked, setIsStorageBlocked] = useState(false);
-  const [isDark, setIsDark] = useStickyState(true, "fp_dark_mode");
+  const [isDark, setIsDark] = useCloudState(true, "fp_dark_mode");
   const toggleTheme = useCallback(() => setIsDark((d) => !d), []);
   const fileInputRef = useRef(null);
 
@@ -523,18 +525,18 @@ export default function App() {
   }, []);
 
   // ESTADO GLOBAL DO TERMINAL
-  const [activeTab, setActiveTab] = useStickyState("portfolio", "fp_tab");
-  const [isRealView, setIsRealView] = useStickyState(false, "fp_realView");
-  const [isGuidedMode, setIsGuidedMode] = useStickyState(true, "fp_guidedMode");
+  const [activeTab, setActiveTab] = useCloudState("portfolio", "fp_tab");
+  const [isRealView, setIsRealView] = useCloudState(false, "fp_realView");
+  const [isGuidedMode, setIsGuidedMode] = useCloudState(true, "fp_guidedMode");
 
   // Carteira
-  const [wealthEUA, setWealthEUA] = useStickyState(62000, "fp_wealthEUA");
-  const [wealthBR, setWealthBR] = useStickyState(30000, "fp_wealthBR");
-  const [wealthCrypto, setWealthCrypto] = useStickyState(
+  const [wealthEUA, setWealthEUA] = useCloudState(62000, "fp_wealthEUA");
+  const [wealthBR, setWealthBR] = useCloudState(30000, "fp_wealthBR");
+  const [wealthCrypto, setWealthCrypto] = useCloudState(
     4000,
     "fp_wealthCrypto"
   );
-  const [emergencyFund, setEmergencyFund] = useStickyState(
+  const [emergencyFund, setEmergencyFund] = useCloudState(
     29000,
     "fp_emergencyFund"
   );
@@ -546,19 +548,19 @@ export default function App() {
   const [isFetchingRates, setIsFetchingRates] = useState(false);
 
   // Macro & Regras
-  const [macroData, setMacroData] = useStickyState(
+  const [macroData, setMacroData] = useCloudState(
     { selic: 11.25, fed: 4.5, fearGreed: 72 },
     "fp_macro"
   );
-  const [monthlyContribution, setMonthlyContribution] = useStickyState(
+  const [monthlyContribution, setMonthlyContribution] = useCloudState(
     1300,
     "fp_monthlyContribution"
   );
-  const [years, setYears] = useStickyState(15, "fp_years");
-  const [inflation, setInflation] = useStickyState(4.0, "fp_inflation");
+  const [years, setYears] = useCloudState(15, "fp_years");
+  const [inflation, setInflation] = useCloudState(4.0, "fp_inflation");
 
   // Alocações com Tratamento Fino
-  const [allocationsRaw, setAllocationsRaw] = useStickyState(
+  const [allocationsRaw, setAllocationsRaw] = useCloudState(
     modelPortfolios.brasilFeijaoComArroz.allocs,
     "fp_allocations"
   );
@@ -569,36 +571,36 @@ export default function App() {
     });
     return cleanAllocs;
   }, [allocationsRaw]);
-  const [activePreset, setActivePreset] = useStickyState(
+  const [activePreset, setActivePreset] = useCloudState(
     "brasilFeijaoComArroz",
     "fp_activePreset"
   );
 
   // FIRE
-  const [annualExpenses, setAnnualExpenses] = useStickyState(
+  const [annualExpenses, setAnnualExpenses] = useCloudState(
     42000,
     "fp_annualExpenses"
   );
-  const [safeWithdrawalRate, setSafeWithdrawalRate] = useStickyState(
+  const [safeWithdrawalRate, setSafeWithdrawalRate] = useCloudState(
     4.0,
     "fp_swr"
   );
-  const [estimatedTaxRate, setEstimatedTaxRate] = useStickyState(
+  const [estimatedTaxRate, setEstimatedTaxRate] = useCloudState(
     15.0,
     "fp_taxRate"
   );
 
   // Fluxo de Caixa (Lançamentos e Histórico)
-  const [cfTab, setCfTab] = useStickyState("lancamentos", "fp_cftab");
-  const [incomes, setIncomes] = useStickyState(
+  const [cfTab, setCfTab] = useCloudState("lancamentos", "fp_cftab");
+  const [incomes, setIncomes] = useCloudState(
     [{ id: 1, desc: "Salário Principal", amount: 4500, category: "Salário" }],
     "fp_incomes"
   );
-  const [expenses, setExpenses] = useStickyState(
+  const [expenses, setExpenses] = useCloudState(
     [{ id: 1, desc: "Aluguel/Condomínio", amount: 2100, category: "Moradia" }],
     "fp_expenses"
   );
-  const [debts, setDebts] = useStickyState(
+  const [debts, setDebts] = useCloudState(
     [{ id: 1, desc: "Financiamento Carro", amount: 400, category: "Dívidas" }],
     "fp_debts"
   );
@@ -607,21 +609,21 @@ export default function App() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
-  const [currentMonth, setCurrentMonth] = useStickyState(
+  const [currentMonth, setCurrentMonth] = useCloudState(
     getCurrentYearMonth(),
     "fp_cf_month"
   );
-  const [savedMonths, setSavedMonths] = useStickyState([], "fp_saved_months");
+  const [savedMonths, setSavedMonths] = useCloudState([], "fp_saved_months");
 
   // Controle Visual de Exclusão (Para evitar confirm nativo)
   const [deletingId, setDeletingId] = useState(null);
 
   // Rebalanceamento Automático
-  const [currentBalances, setCurrentBalances] = useStickyState(
+  const [currentBalances, setCurrentBalances] = useCloudState(
     {},
     "fp_current_bals"
   );
-  const [newRebalanceAporte, setNewRebalanceAporte] = useStickyState(
+  const [newRebalanceAporte, setNewRebalanceAporte] = useCloudState(
     1300,
     "fp_new_aporte"
   );
