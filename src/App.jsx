@@ -68,11 +68,7 @@ import {
 // ==========================================
 // 🧠 HOOKS BLINDADOS E OTIMIZADOS
 // ==========================================
-import useCloudState from "./hooks/useCloudState";
 
-function useCloudState(defaultValue, key) {
-  return useCloudState(defaultValue, key);
-}
 // ==========================================
 // 🔧 UTILITÁRIOS GLOBAIS (FORA DO COMPONENTE)
 // ==========================================
@@ -1773,6 +1769,18 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {activeTab === "fire" && (
+  <ProjectionScenarios
+    patrimonioInicial={unifiedCapitalUSD}
+    aporteMensal={monthlyContribution}
+    anos={years}
+    retornoNominalPct={metrics.nom}
+    taxaSaquePct={safeWithdrawalRate}
+    rendaMensalDesejada={annualExpenses / 12}
+    formatUSD={formatUSD}
+  />
+)}
 
           {/* =======================================================
               ABA 3: FLUXO DE CAIXA
