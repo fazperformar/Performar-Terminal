@@ -66,34 +66,10 @@ import {
 // ==========================================
 // 🧠 HOOKS BLINDADOS E OTIMIZADOS
 // ==========================================
+import useCloudState from "./hooks/useCloudState";
+
 function useStickyState(defaultValue, key) {
-  const [value, setValue] = useState(() => {
-    if (typeof window === "undefined") return defaultValue;
-    try {
-      const stickyValue = window.localStorage.getItem(key);
-      return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
-    } catch (error) {
-      console.warn(`Erro ao ler ${key} do cache.`, error);
-      return defaultValue;
-    }
-  });
-
-  // 👇 AQUI ESTÁ A MÁGICA DO DEBOUNCE (PERFORMANCE EXTREMA) 👇
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (typeof window !== "undefined") {
-        try {
-          window.localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
-          console.warn(`Erro ao salvar ${key} no cache.`, error);
-        }
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [key, value]);
-
-  return [value, setValue];
+  return useCloudState(defaultValue, key);
 }
 // ==========================================
 // 🔧 UTILITÁRIOS GLOBAIS (FORA DO COMPONENTE)
