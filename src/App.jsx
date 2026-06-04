@@ -104,166 +104,152 @@ const masterAssets = {
   sgov: {
     ticker: "SGOV",
     name: "Caixa Dólar (Renda Fixa)",
-    return: 3.5,
-    vol: 0.5,
-    yield: 3.5,
-    beta: 0.0,
-    drawdown: -0.5,
+    return: 3.5, vol: 0.5, yield: 3.5, beta: 0.0, drawdown: -0.5,
     color: "#64748b",
   },
   jaaa: {
     ticker: "JAAA",
     name: "Crédito AAA (Renda Fixa)",
-    return: 5.5,
-    vol: 4.0,
-    yield: 5.0,
-    beta: 0.1,
-    drawdown: -5,
+    return: 5.5, vol: 4.0, yield: 5.0, beta: 0.1, drawdown: -5,
     color: "#f59e0b",
+  },
+  tlt: {
+    ticker: "TLT",
+    name: "Tesouro Longo EUA (20+ anos)",
+    return: 4.5, vol: 14.0, yield: 4.0, beta: -0.2, drawdown: -25,
+    color: "#475569",
   },
   schd: {
     ticker: "SCHD",
     name: "Dividendos EUA",
-    return: 11.5,
-    vol: 15.0,
-    yield: 3.5,
-    beta: 0.8,
-    drawdown: -22,
+    return: 11.5, vol: 15.0, yield: 3.5, beta: 0.8, drawdown: -22,
     color: "#3b82f6",
+  },
+  jepi: {
+    ticker: "JEPI",
+    name: "Renda de Opções EUA (mensal)",
+    return: 9.0, vol: 11.0, yield: 7.5, beta: 0.6, drawdown: -18,
+    color: "#1d4ed8",
   },
   cowz: {
     ticker: "COWZ",
-    name: "Ações de Muito Caixa",
-    return: 13.0,
-    vol: 18.0,
-    yield: 2.0,
-    beta: 0.85,
-    drawdown: -20,
+    name: "Ações de Muito Caixa (Valor)",
+    return: 13.0, vol: 18.0, yield: 2.0, beta: 0.85, drawdown: -20,
     color: "#14b8a6",
+  },
+  qual: {
+    ticker: "QUAL",
+    name: "Qualidade EUA (Megacaps)",
+    return: 12.0, vol: 16.0, yield: 1.3, beta: 0.95, drawdown: -22,
+    color: "#0d9488",
+  },
+  avuv: {
+    ticker: "AVUV",
+    name: "Pequenas Empresas Valor EUA",
+    return: 13.5, vol: 21.0, yield: 1.5, beta: 1.25, drawdown: -35,
+    color: "#10b981",
+  },
+  qqqm: {
+    ticker: "QQQM",
+    name: "Tecnologia (Nasdaq)",
+    return: 14.0, vol: 22.0, yield: 0.6, beta: 1.2, drawdown: -33,
+    color: "#f43f5e",
   },
   iqlt: {
     ticker: "IQLT",
     name: "Qualidade Internacional",
-    return: 10.5,
-    vol: 16.0,
-    yield: 2.0,
-    beta: 0.95,
-    drawdown: -24,
+    return: 10.5, vol: 16.0, yield: 2.0, beta: 0.95, drawdown: -24,
     color: "#6366f1",
   },
   vxus: {
     ticker: "VXUS",
     name: "Mundo Ex-EUA",
-    return: 8.5,
-    vol: 17.0,
-    yield: 3.2,
-    beta: 1.05,
-    drawdown: -28,
+    return: 8.5, vol: 17.0, yield: 3.2, beta: 1.05, drawdown: -28,
     color: "#8b5cf6",
   },
   vt: {
     ticker: "VT",
     name: "Mercado Global",
-    return: 9.5,
-    vol: 16.0,
-    yield: 2.1,
-    beta: 1.0,
-    drawdown: -25,
+    return: 9.5, vol: 16.0, yield: 2.1, beta: 1.0, drawdown: -25,
     color: "#0ea5e9",
   },
-  qqqm: {
-    ticker: "QQQM",
-    name: "Tecnologia (Nasdaq)",
-    return: 18.0,
-    vol: 22.0,
-    yield: 0.6,
-    beta: 1.2,
-    drawdown: -33,
-    color: "#f43f5e",
+  aves: {
+    ticker: "AVES",
+    name: "Valor Emergentes",
+    return: 12.0, vol: 22.0, yield: 3.0, beta: 1.1, drawdown: -38,
+    color: "#a855f7",
   },
-  avuv: {
-    ticker: "AVUV",
-    name: "Pequenas Empresas EUA",
-    return: 13.5,
-    vol: 21.0,
-    yield: 1.5,
-    beta: 1.25,
-    drawdown: -35,
-    color: "#10b981",
+  vici: {
+    ticker: "VICI",
+    name: "Imobiliário EUA (REIT)",
+    return: 10.0, vol: 18.0, yield: 5.5, beta: 0.8, drawdown: -30,
+    color: "#e11d48",
+  },
+  cibr: {
+    ticker: "CIBR",
+    name: "Cibersegurança",
+    return: 14.0, vol: 24.0, yield: 0.3, beta: 1.15, drawdown: -35,
+    color: "#2563eb",
+  },
+  copx: {
+    ticker: "COPX",
+    name: "Mineradoras de Cobre",
+    return: 12.0, vol: 32.0, yield: 1.5, beta: 1.5, drawdown: -45,
+    color: "#c2410c",
+  },
+  mp: {
+    ticker: "MP",
+    name: "Terras Raras (MP Materials)",
+    return: 13.0, vol: 40.0, yield: 0.0, beta: 1.6, drawdown: -55,
+    color: "#9333ea",
   },
   thematic: {
     ticker: "URA",
-    name: "Apostas Temáticas (Urânio)",
-    return: 15.0,
-    vol: 28.0,
-    yield: 0.5,
-    beta: 1.4,
-    drawdown: -40,
+    name: "Urânio (Temático)",
+    return: 13.0, vol: 28.0, yield: 0.5, beta: 1.4, drawdown: -40,
     color: "#d946ef",
   },
   rendaFixaBr: {
     ticker: "B5P211/IPCA+",
-    name: "Renda Fixa BR (Curta)",
-    return: 11.5,
-    vol: 3.0,
-    yield: 10.5,
-    beta: 0.1,
-    drawdown: -3,
+    name: "Renda Fixa BR",
+    return: 11.5, vol: 3.0, yield: 10.5, beta: 0.1, drawdown: -3,
     color: "#0284c7",
   },
   ibov: {
     ticker: "BOVA11",
     name: "Ações Brasil (Ibovespa)",
-    return: 11.0,
-    vol: 24.0,
-    yield: 7.5,
-    beta: 1.0,
-    drawdown: -45,
+    return: 11.0, vol: 24.0, yield: 7.5, beta: 1.0, drawdown: -45,
     color: "#059669",
   },
   fiis: {
     ticker: "IFIX",
-    name: "Fundos Imobiliários",
-    return: 12.0,
-    vol: 12.0,
-    yield: 11.0,
-    beta: 0.3,
-    drawdown: -25,
+    name: "Fundos Imobiliários BR",
+    return: 12.0, vol: 12.0, yield: 11.0, beta: 0.3, drawdown: -25,
     color: "#ea580c",
   },
-};
-
+}
 const modelPortfolios = {
   brasilFeijaoComArroz: {
-    label: "Brasil Básico (50/25/25)",
+    label: "🇧🇷 Feijão com Arroz (Brasil)",
     allocs: { rendaFixaBr: 50, ibov: 25, fiis: 25 },
   },
-  boglehead: {
-    label: "Básico Global (EUA/Seguro)",
-    allocs: { sgov: 40, vxus: 30, cowz: 30 },
-  },
   fazPerformar: {
-    label: "Faz Performar (Global)",
+    label: "⚡ Faz Performar (Global)",
     allocs: {
-      cowz: 20,
-      vxus: 10,
-      iqlt: 15,
-      qqqm: 10,
-      avuv: 20,
-      jaaa: 10,
-      thematic: 15,
+      avuv: 16, cowz: 15, iqlt: 15, qual: 13, aves: 9, vici: 5,
+      jaaa: 9, sgov: 3,
+      cibr: 5, thematic: 4, copx: 3, mp: 3,
     },
   },
-  agressivo: {
-    label: "Agressivo (Tech/Valor)",
-    allocs: { qqqm: 35, avuv: 25, cowz: 15, thematic: 15, vxus: 10 },
+  growthAgressiva: {
+    label: "🚀 Growth Agressiva (EUA)",
+    allocs: { qqqm: 35, avuv: 25, cowz: 15, cibr: 10, aves: 10, mp: 5 },
   },
-  renda: {
-    label: "Usufruto (Foco Dividendos)",
-    allocs: { jaaa: 30, schd: 25, sgov: 20, cowz: 15, fiis: 10 },
+  rendaUsufruto: {
+    label: "💰 Renda & Usufruto (EUA)",
+    allocs: { schd: 20, jepi: 20, vici: 15, jaaa: 20, tlt: 10, sgov: 15 },
   },
-};
-
+}
 const expenseCats = [
   "Moradia",
   "Alimentação",
@@ -1771,16 +1757,16 @@ export default function App() {
           )}
 
           {activeTab === "fire" && (
-  <ProjectionScenarios
-    patrimonioInicial={unifiedCapitalUSD}
-    aporteMensal={monthlyContribution}
-    anos={years}
-    retornoNominalPct={metrics.nom}
-    taxaSaquePct={safeWithdrawalRate}
-    rendaMensalDesejada={annualExpenses / 12}
-    formatUSD={formatUSD}
-  />
-)}
+            <ProjectionScenarios
+              patrimonioInicial={unifiedCapitalUSD}
+              aporteMensal={monthlyContribution}
+              anos={years}
+              retornoNominalPct={metrics.nom}
+              taxaSaquePct={safeWithdrawalRate}
+              rendaMensalDesejada={annualExpenses / 12}
+              formatUSD={formatUSD}
+            />
+          )}
 
           {/* =======================================================
               ABA 3: FLUXO DE CAIXA
